@@ -131,6 +131,22 @@ async def read_file(  # pylint: disable=too-many-return-statements
             ],
         )
 
+    # Reject raw reads for spreadsheet binary formats
+    suffix = Path(file_path).suffix.lower()
+    spreadsheet_extensions = {".xlsx", ".xls", ".xlsm", ".xlsb", ".ods"}
+    if suffix in spreadsheet_extensions:
+        return ToolResponse(
+            content=[
+                TextBlock(
+                    type="text",
+                    text=(
+                        f"Error: Raw read of spreadsheet file '{file_path}' is not supported. "
+                        "Please export to CSV or use a spreadsheet reader tool."
+                    ),
+                ),
+            ],
+        )
+
     try:
         content = await read_file_safe(file_path)
         all_lines = content.split("\n")
@@ -264,132 +280,4 @@ async def edit_file(
 
     Args:
         file_path (`str`):
-            Path to the file.
-        old_text (`str`):
-            Exact text to find.
-        new_text (`str`):
-            Replacement text.
-    """
-
-    if not file_path:
-        return ToolResponse(
-            content=[
-                TextBlock(
-                    type="text",
-                    text="Error: No `file_path` provided.",
-                ),
-            ],
-        )
-
-    resolved_path = _resolve_file_path(file_path)
-
-    if not os.path.exists(resolved_path):
-        return ToolResponse(
-            content=[
-                TextBlock(
-                    type="text",
-                    text=f"Error: The file {resolved_path} does not exist.",
-                ),
-            ],
-        )
-
-    if not os.path.isfile(resolved_path):
-        return ToolResponse(
-            content=[
-                TextBlock(
-                    type="text",
-                    text=f"Error: The path {resolved_path} is not a file.",
-                ),
-            ],
-        )
-
-    try:
-        content = await read_file_safe(resolved_path)
-    except Exception as e:
-        return ToolResponse(
-            content=[
-                TextBlock(
-                    type="text",
-                    text=f"Error: Read file failed due to \n{e}",
-                ),
-            ],
-        )
-
-    if old_text not in content:
-        return ToolResponse(
-            content=[
-                TextBlock(
-                    type="text",
-                    text=f"Error: The text to replace was not found in {file_path}.",
-                ),
-            ],
-        )
-
-    new_content = content.replace(old_text, new_text)
-    write_response = await write_file(
-        file_path=resolved_path,
-        content=new_content,
-    )
-
-    if write_response.content and len(write_response.content) > 0:
-        write_text = write_response.content[0].get("text", "")
-        if write_text.startswith("Error:"):
-            return write_response
-
-    return ToolResponse(
-        content=[
-            TextBlock(
-                type="text",
-                text=f"Successfully replaced text in {file_path}.",
-            ),
-        ],
-    )
-
-
-async def append_file(
-    file_path: str,
-    content: str,
-) -> ToolResponse:
-    """Append content to the end of a file. Relative paths resolve from
-    WORKING_DIR.
-
-    Args:
-        file_path (`str`):
-            Path to the file.
-        content (`str`):
-            Content to append.
-    """
-
-    if not file_path:
-        return ToolResponse(
-            content=[
-                TextBlock(
-                    type="text",
-                    text="Error: No `file_path` provided.",
-                ),
-            ],
-        )
-
-    file_path = _resolve_file_path(file_path)
-    encoding = _get_encoding_for_file(file_path)
-
-    try:
-        with open(file_path, "a", encoding=encoding) as file:
-            file.write(content)
-        return ToolResponse(
-            content=[
-                TextBlock(
-                    type="text",
-                    text=f"Appended {len(content)} bytes to {file_path}.",
-                ),
-            ],
-        )
-    except Exception as e:
-        return ToolResponse(
-            content=[
-                TextBlock(
-                    type="text",
-                    text=f"Error: Append file failed due to \n{e}",
-                ),
-            ],
-        )
+            Path to t
