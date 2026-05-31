@@ -131,6 +131,28 @@ async def read_file(  # pylint: disable=too-many-return-statements
             ],
         )
 
+    # Reject raw reads for Excel/workbook binary formats
+    restricted_extensions = {
+        ".xlsx",
+        ".xls",
+        ".xlsm",
+        ".xlsb",
+        ".ods",
+    }
+    file_suffix = Path(file_path).suffix.lower()
+    if file_suffix in restricted_extensions:
+        return ToolResponse(
+            content=[
+                TextBlock(
+                    type="text",
+                    text="Error: Raw reading of spreadsheet workbooks is "
+                    "not supported. "
+                    "Please use a spreadsheet reader to inspect "
+                    "bounded rows or export to CSV.",
+                ),
+            ],
+        )
+
     try:
         content = await read_file_safe(file_path)
         all_lines = content.split("\n")
