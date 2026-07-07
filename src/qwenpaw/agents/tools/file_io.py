@@ -111,6 +111,24 @@ async def read_file(  # pylint: disable=too-many-return-statements
 
     file_path = _resolve_file_path(file_path)
 
+    # Reject binary spreadsheet formats that cannot be read as text
+    _SPREADSHEET_EXTENSIONS = {".xlsx", ".xls", ".xlsm", ".xlsb", ".ods"}
+    suffix = Path(file_path).suffix.lower()
+    if suffix in _SPREADSHEET_EXTENSIONS:
+        return ToolResponse(
+            content=[
+                TextBlock(
+                    type="text",
+                    text=(
+                        f"Error: Cannot read {suffix} file as raw text. "
+                        "Binary spreadsheet formats (.xlsx, .xls, .xlsm, .xlsb, .ods) "
+                        "should be read using a spreadsheet reader (e.g. openpyxl, pandas) "
+                        "or exported to CSV first."
+                    ),
+                ),
+            ],
+        )
+
     if not os.path.exists(file_path):
         return ToolResponse(
             content=[
